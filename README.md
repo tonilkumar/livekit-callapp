@@ -17,11 +17,11 @@ Clean Architecture + MVVM and BLoC state management.
 
 1. In the [LiveKit Cloud dashboard](https://cloud.livekit.io) enable
    **Sandbox → Token server** and copy the sandbox ID (looks like
-   `token-server-xxxxxx`).
+   `your-sandbox-id`).
 2. Run on a **physical Android device** (the emulator has no real camera):
 
 ```sh
-flutter run --dart-define=LIVEKIT_SANDBOX_ID=token-server-xxxxxx
+flutter run --dart-define=LIVEKIT_SANDBOX_ID=your-sandbox-id
 ```
 
 Single-device smoke test without a sandbox (paste a manually minted token):

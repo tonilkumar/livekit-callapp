@@ -1,5 +1,4 @@
 import 'package:get_it/get_it.dart';
-import 'package:http/http.dart' as http;
 
 import '../../features/call/data/datasources/livekit_room_data_source.dart';
 import '../../features/call/data/datasources/token_service.dart';
@@ -20,11 +19,10 @@ final sl = GetIt.instance;
 void configureDependencies() {
   // Core
   sl.registerLazySingleton(PermissionService.new);
-  sl.registerLazySingleton(http.Client.new);
 
   // Data — the repository is a singleton (one live call at a time) but
   // creates a fresh LiveKit Room per connect.
-  sl.registerLazySingleton<TokenService>(() => SandboxTokenService(sl()));
+  sl.registerLazySingleton<TokenService>(SandboxTokenService.new);
   sl.registerLazySingleton(LiveKitRoomDataSource.new);
   sl.registerLazySingleton<CallRepository>(
     () => LiveKitCallRepository(sl(), sl()),

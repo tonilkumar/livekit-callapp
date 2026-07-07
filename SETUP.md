@@ -58,17 +58,22 @@ The app never hardcodes credentials. It reads them at **runtime** via
 
 ### Get a sandbox ID
 1. Sign in at **https://cloud.livekit.io** (free).
-2. Open your project → **Settings → Sandbox** → enable **Token server**.
-3. Copy the sandbox ID — it looks like `token-server-abc123`.
+2. Open your project → **Settings** → find the **Token server** toggle and switch it on.
+3. Copy the sandbox ID shown below the toggle (a short id, e.g. `new-xxxxx`).
 
-That single ID is all you need. The app POSTs the room + participant name to
-LiveKit's sandbox endpoint and gets back a `serverUrl` + `participantToken`.
+> This is LiveKit's **hosted** token server — you do **not** run or deploy any
+> backend. Enabling it wires your project's key/secret on LiveKit's side; the
+> app only ever needs the sandbox ID.
+
+That single ID is all you need. The app hands it to the LiveKit SDK's
+`SandboxTokenSource`, which fetches a fresh `serverUrl` + `participantToken`
+from LiveKit's hosted sandbox — you never run a backend.
 
 ### Two ways to supply it
 
 **A) Sandbox ID (normal path — different identities per device):**
 ```bash
-flutter run --dart-define=LIVEKIT_SANDBOX_ID=token-server-abc123
+flutter run --dart-define=LIVEKIT_SANDBOX_ID=your-sandbox-id
 ```
 
 **B) A single hardcoded token (quick one-device smoke test only):**
@@ -91,19 +96,22 @@ flutter run --dart-define=LIVEKIT_URL=wss://<project>.livekit.cloud --dart-defin
 flutter devices
 
 # run on the default device (pass your sandbox ID)
-flutter run --dart-define=LIVEKIT_SANDBOX_ID=token-server-abc123
+flutter run --dart-define=LIVEKIT_SANDBOX_ID=your-sandbox-id
 
 # run on a specific device id
-flutter run -d <device_id> --dart-define=LIVEKIT_SANDBOX_ID=token-server-abc123
+flutter run -d <device_id> --dart-define=LIVEKIT_SANDBOX_ID=your-sandbox-id
 ```
 
 While running: press `r` = hot reload, `R` = hot restart, `q` = quit.
 
-### Demo a real 2-way call with only one phone
-Your phone runs the app; a browser plays the other participant:
-1. Open **https://meet.livekit.io** → **Custom** tab.
-2. Use the **same LiveKit project** and join the **same Room ID** you typed in the app.
-3. The browser user shows up as the remote video on your phone.
+### Demo a real 2-way call
+- **Two devices/emulators (easiest):** run the same command on each with the
+  **same Room ID** and different names — they connect to each other. The app
+  appends a random suffix to each identity, so identical names don't collide.
+- **One phone + a browser:** open **https://meet.livekit.io** → **Custom** tab,
+  paste **your** project's `wss://…` server URL and a token for the **same
+  room** (mint one in the LiveKit dashboard or via `lk token create`), then
+  join. The browser user then appears as the remote video on your phone.
 
 ---
 
@@ -114,7 +122,7 @@ Your phone runs the app; a browser plays the other participant:
 flutter build apk --debug
 
 # Release APK — bake the sandbox ID in so the installed app is ready to demo
-flutter build apk --release --dart-define=LIVEKIT_SANDBOX_ID=token-server-abc123
+flutter build apk --release --dart-define=LIVEKIT_SANDBOX_ID=your-sandbox-id
 ```
 
 Output lands at:
