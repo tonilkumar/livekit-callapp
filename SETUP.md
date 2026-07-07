@@ -69,14 +69,28 @@ That single ID is all you need. The app hands it to the LiveKit SDK's
 `SandboxTokenSource`, which fetches a fresh `serverUrl` + `participantToken`
 from LiveKit's hosted sandbox — you never run a backend.
 
-### Two ways to supply it
+> **The sandbox URL is per-project and derived from the ID.** The SDK builds
+> `https://<sandbox-id>.sandbox.livekit.io` for you — change the id and the URL
+> follows automatically; there is no URL to hardcode. (Passing the raw sandbox
+> URL directly does **not** work: the hosted server needs the exact request
+> path the SDK constructs, so the **id** is the knob, not the URL.)
 
-**A) Sandbox ID (normal path — different identities per device):**
+### Three ways to supply the token config
+
+**A) Sandbox ID — recommended dev path (URL auto-derived per project):**
 ```bash
 flutter run --dart-define=LIVEKIT_SANDBOX_ID=your-sandbox-id
 ```
 
-**B) A single hardcoded token (quick one-device smoke test only):**
+**B) Custom token endpoint — your own token server (full URL configurable):**
+```bash
+flutter run --dart-define=LIVEKIT_TOKEN_ENDPOINT=https://your-server.example/token
+```
+The endpoint must return `{ server_url, participant_token }` (LiveKit's
+endpoint-token contract). This is the production path — the API secret lives on
+your server, never in the app.
+
+**C) Static token — quick one-device smoke test only:**
 Mint one in the LiveKit dashboard (or `lk token create`) and pass both:
 ```bash
 flutter run --dart-define=LIVEKIT_URL=wss://<project>.livekit.cloud --dart-define=LIVEKIT_TOKEN=eyJhbGciOi...
@@ -192,7 +206,8 @@ test/                             # bloc tests + Join screen widget tests
 | "Android license status unknown" | `flutter doctor --android-licenses`, accept all. |
 | First `flutter build`/`run` takes minutes | Gradle downloads the toolchain once (~5–8 min), then it's cached. |
 | Black video on emulator | Emulator has no real camera. Test on a **physical device**. |
-| "LiveKit is not configured" error on Join | You didn't pass `--dart-define=LIVEKIT_SANDBOX_ID=...`. |
+| "LiveKit is not configured" error on Join | Pass `--dart-define=LIVEKIT_SANDBOX_ID=<id>` (or `LIVEKIT_TOKEN_ENDPOINT=<url>`). |
+| `TokenSourceHttpException … 405` | You pointed `LIVEKIT_TOKEN_ENDPOINT` at a **sandbox** URL. The hosted sandbox needs the SDK's request path — use `LIVEKIT_SANDBOX_ID=<id>` instead. `LIVEKIT_TOKEN_ENDPOINT` is only for your own token server. |
 | Release build can't connect but debug works | Ensure `INTERNET` permission is in `AndroidManifest.xml` (it is here) — the Flutter default only adds it to debug/profile. |
 | Two users disconnect each other | They used the same name → same identity. The app already appends a random suffix, so update if you changed that logic. |
 | Local `livekit-server --dev` (ws://) won't connect on Android | Non-TLS needs `android:usesCleartextTraffic="true"`; prefer LiveKit Cloud (`wss://`). |

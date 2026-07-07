@@ -23,29 +23,38 @@ abstract class TokenService {
 ///
 /// Configured at build time via --dart-define, in priority order:
 ///
-/// 1. Sandbox token server — the recommended dev path, no backend to run:
-///        flutter run --dart-define=LIVEKIT_SANDBOX_ID=your-sandbox-id
-///    Delegates to the SDK's [sdk.SandboxTokenSource], which calls LiveKit's
-///    hosted sandbox at `https://{id}.sandbox.livekit.io` and returns a fresh
-///    token. Insecure by design — development only.
+/// 1. Custom token endpoint — your own token server, full URL configurable:
+///        --dart-define=LIVEKIT_TOKEN_ENDPOINT=https://your-server.example/token
+///    Uses the SDK's [sdk.EndpointTokenSource]; the endpoint must return
+///    `{ server_url, participant_token }`. This is the production path.
 ///
-/// 2. Static token — a single-device smoke test with a pre-minted token:
-///        flutter run --dart-define=LIVEKIT_URL=wss://... --dart-define=LIVEKIT_TOKEN=eyJ...
+/// 2. Sandbox token server — the recommended dev path, no backend to run:
+///        --dart-define=LIVEKIT_SANDBOX_ID=your-sandbox-id
+///    Uses [sdk.SandboxTokenSource]. The hosted URL
+///    (`https://{id}.sandbox.livekit.io`) is derived from the id, so it is
+///    automatically per-project — nothing else to configure. Insecure by
+///    design; development only.
 ///
-/// Production must mint tokens on your own backend (see LiveKit's
-/// EndpointTokenSource); the LiveKit API secret never ships inside the app.
+/// 3. Static token — a single-device smoke test with a pre-minted token:
+///        --dart-define=LIVEKIT_URL=wss://... --dart-define=LIVEKIT_TOKEN=eyJ...
+///
+/// The LiveKit API secret never ships inside the app.
 class SandboxTokenService implements TokenService {
   SandboxTokenService();
 
+  static const _endpointUrl = String.fromEnvironment('LIVEKIT_TOKEN_ENDPOINT');
   static const _sandboxId = String.fromEnvironment('LIVEKIT_SANDBOX_ID');
   static const _manualUrl = String.fromEnvironment('LIVEKIT_URL');
   static const _manualToken = String.fromEnvironment('LIVEKIT_TOKEN');
 
   final Random _random = Random();
 
-  // Built lazily, only after the sandbox id is confirmed non-empty.
-  late final sdk.SandboxTokenSource _tokenSource =
-      sdk.SandboxTokenSource(sandboxId: _sandboxId);
+  // Built lazily, only after config is confirmed (endpoint url or sandbox id).
+  // A custom endpoint takes precedence; otherwise the sandbox source derives
+  // its URL from the id, so it is per-project without any extra config.
+  late final sdk.EndpointTokenSource _tokenSource = _endpointUrl.isNotEmpty
+      ? sdk.EndpointTokenSource(url: Uri.parse(_endpointUrl))
+      : sdk.SandboxTokenSource(sandboxId: _sandboxId);
 
   @override
   Future<ConnectionDetails> fetchConnectionDetails({
@@ -58,10 +67,11 @@ class SandboxTokenService implements TokenService {
         token: _manualToken,
       );
     }
-    if (_sandboxId.isEmpty) {
+    if (_endpointUrl.isEmpty && _sandboxId.isEmpty) {
       throw const TokenConfigFailure(
-        'LiveKit is not configured. Run the app with '
-        '--dart-define=LIVEKIT_SANDBOX_ID=<your sandbox id>.',
+        'LiveKit is not configured. Pass --dart-define=LIVEKIT_SANDBOX_ID=<id> '
+        '(hosted sandbox) or --dart-define=LIVEKIT_TOKEN_ENDPOINT=<url> '
+        '(your own token server).',
       );
     }
 
